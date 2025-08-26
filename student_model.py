@@ -1,12 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Dec  2 19:34:22 2020
-
-@author: wangwu
-"""
-
-
 from email.mime import base
 import torch
 import torch.nn as nn

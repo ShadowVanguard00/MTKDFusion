@@ -1,12 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Dec  2 19:34:22 2020
-
-@author: wangwu
-"""
-
-
 from email.mime import base
 import torch
 import torch.nn as nn
@@ -27,12 +18,10 @@ import torch.optim.lr_scheduler as lrs
 from PIL import Image
 import glob
 
-
 class Former(nn.Module):
     def __init__(self, base_filter):
         super(Former, self).__init__()
         self.gwfe = GWFE(base_filter,base_filter)
-
     def forward(self, I):
         return self.gwfe(I)
 
@@ -65,7 +54,6 @@ class Encoder(nn.Module):
 class Decoder(nn.Module):
     def __init__(self, num_channel, base_filter):
         super(Decoder, self).__init__()
-
         self.up = nn.Upsample(scale_factor=2, mode='bilinear')
         self.dformer1 = Former(base_filter)
         self.dformer2 = Former(base_filter)
@@ -84,14 +72,12 @@ class Decoder(nn.Module):
         I = self.dformer1(I)
         I = self.out_conv(I)
         return I,emb
-    
 
 class teacher_model(nn.Module):
     def __init__(self, num_channel, base_filter):
         super(teacher_model, self).__init__()
         self.encoder = Encoder(num_channel,base_filter)
         self.decoder = Decoder(num_channel,base_filter)
-        
     def forward(self, I1):
         I1res,I1res2,I1res4,I18 = self.encoder(I1)
         # decoder
@@ -103,7 +89,6 @@ l1_loss = torch.nn.L1Loss().to(device)
 
 def parse_args():
     parser = argparse.ArgumentParser()
-
     parser.add_argument('--name', default='pyramid_model', help='model name: (default: arch+timestamp)')
     parser.add_argument('--epochs', default=320, type=int)
     parser.add_argument('--ema_decay', default=0.999, type=float)
@@ -115,12 +100,8 @@ def parse_args():
     parser.add_argument('--weight', default=[1,1,0.0001, 0.0002], type=float)
     parser.add_argument('--betas', default=(0.9, 0.999), type=tuple)
     parser.add_argument('--eps', default=1e-8, type=float)
-
     args = parser.parse_args()
-
     return args
-
-
 
 from tqdm import tqdm
 import torch.backends.cudnn as cudnn
@@ -134,7 +115,6 @@ torch.backends.cudnn.benchmark  = False
 import torchvision.transforms as transforms
 import joblib
 from torch.utils.data import DataLoader, Dataset
-
 
 def train(args, train_loader_ir, model, optimizer,epoch):
     model.train()
@@ -169,8 +149,7 @@ def main():
     joblib.dump(args, 'models/%s/args.pkl' %args.name)
     cudnn.benchmark = True
 
-    # supervised mfif data
-    train_dir_f = "./tea_recon/MKDFusion_tea_Images/" # forground
+    train_dir_f = "./tea_recon/MKDFusion_tea_Images/"
     train_name_list = os.listdir(train_dir_f)
 
     transform_train = transforms.Compose([transforms.ToTensor(),
@@ -181,9 +160,7 @@ def main():
     train_loader_ir = DataLoader(dataset_train_ir,
                               shuffle=True,
                               batch_size=args.sbatch_size)
-    
     model = teacher_model(num_channel=1, base_filter=16).to(device)
-
     milestones = []
     for i in range(1, args.epochs+1):
         if i == 200:

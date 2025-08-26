@@ -121,15 +121,10 @@ def train(args, train_loader_ir, model, optimizer,epoch):
     for i, (batch_s) in tqdm(enumerate(zip(train_loader_ir))):
         nf = Variable(batch_s[0])
         nf = nf.to(device)
-        
         optimizer.zero_grad()
-        
         out_nf = model(nf)
-
         mfif_loss =  l1_loss(out_nf, nf)
         total_loss = mfif_loss
-        print("Loss: {:.2e}".format(total_loss.item()))
-
         total_loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1e-4, norm_type=2)
         optimizer.step()
@@ -138,10 +133,8 @@ def train(args, train_loader_ir, model, optimizer,epoch):
 
 def main():
     args = parse_args()
-
     if not os.path.exists('models/%s' %args.name):
         os.makedirs('models/%s' %args.name)
-
     print('Config -----')
     for arg in vars(args):
         print('%s: %s' %(arg, getattr(args, arg)))
@@ -156,7 +149,6 @@ def main():
                                           ])
     dataset_train_ir = Get_SDataset(train_dir_f, train_name_list,
                                     transform=transform_train)
-
     train_loader_ir = DataLoader(dataset_train_ir,
                               shuffle=True,
                               batch_size=args.sbatch_size)
@@ -177,7 +169,6 @@ def main():
         model.zero_grad()
         train(args,train_loader_ir,model,optimizer,epoch)
         ckt['a'] = ckt['a'] + 2e-4
-
         scheduler_f.step()
         if (epoch+1) % 1 == 0:
             torch.save(model.state_dict(), 'models_ch48/%s/model_{}.pth'.format(epoch+1) %args.name)

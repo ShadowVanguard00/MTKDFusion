@@ -95,7 +95,6 @@ class Decoder(nn.Module):
         return I, I8_d, I4, I2, I1
     
 
-
 class Stu_Decoder(nn.Module):
     def __init__(self, num_channel, base_filter):
         super(Stu_Decoder, self).__init__()
@@ -193,7 +192,6 @@ l1_loss = torch.nn.L1Loss().to(device)
 
 def parse_args():
     parser = argparse.ArgumentParser()
-
     parser.add_argument('--name', default='stu_pyramid_model', help='model name: (default: arch+timestamp)')
     parser.add_argument('--epochs', default=300, type=int)
     parser.add_argument('--ema_decay', default=0.999, type=float)
@@ -208,8 +206,6 @@ def parse_args():
 
     args = parser.parse_args()
     return args
-
-
 
 from tqdm import tqdm
 import torch.backends.cudnn as cudnn
@@ -236,72 +232,38 @@ def YCbCr2RGB(Y, Cb, Cr):
     out = temp.reshape(B, W, H, C).transpose(1, 3).transpose(2, 3)
     out = out.clamp(0,1.0)
     return out
-
  
 from utils import nonlinear_decay
 
 def train(args, train_loader_ir, model_tea, model_stu, optimizer, epoch, loss_history):
     model_stu.train()
     model_tea.eval()
-
-    # rate = nonlinear_decay(epoch, args.epochs * 1 // 3 )  # 使用整数除法
-    rate = nonlinear_decay(epoch)  # 使用整数除法
-
-    print("rate: ", rate)
-
-    epoch_fusion_loss, epoch_kd_gt_loss, epoch_kd_feat_loss = 0, 0, 0
-
-
+    rate = nonlinear_decay(epoch)
     for i, (batch_s) in tqdm(enumerate(zip(train_loader_ir))):
         ir_img = Variable(batch_s[0][0])
         ir_img = ir_img.to(device)
-
         vi_img = Variable(batch_s[0][1])
         vi_img = vi_img.to(device)
         Y_vi, Cb_vi, Cr_vi = RGB2YCrCb(vi_img)
-
         tea_img = Variable(batch_s[0][2])
         tea_img = tea_img.to(device)
-        
         optimizer.zero_grad()
-
         with torch.no_grad(): 
             _, tea_enc_feat, tea_dec_feat = model_tea(tea_img)
-        
         stu_fused_img, stu_fuse_feat, stu_dec_feat = model_stu(Y_vi, ir_img, tea_enc_feat, tea_dec_feat, rate)
-
         fuse_loss, _, _ =  Fusion_loss(vi_img, ir_img, stu_fused_img,device=device)
-
         kd_gt_loss = l1_loss(stu_fused_img, tea_img)
         kd_feat_loss = calculate_cosine_similarity_loss(stu_fuse_feat, tea_enc_feat)
-
         total_loss = fuse_loss + kd_gt_loss * 100 + kd_feat_loss * 100
-
         total_loss.backward()
         torch.nn.utils.clip_grad_norm_(model_stu.parameters(), max_norm=1e-4, norm_type=2)
         optimizer.step()
         model_stu.zero_grad()
-
-        # 打印部分
-        print("fusion_Loss: {:.2e},kd_gt_loss: {:.2e},kd_feat_loss: {:.2e}".format(fuse_loss.item(), kd_gt_loss.item() * 100, kd_feat_loss.item() * 100))
-        epoch_fusion_loss += fuse_loss.item()
-        epoch_kd_gt_loss += kd_gt_loss.item() * 100
-        epoch_kd_feat_loss += kd_feat_loss.item() * 100
     
-    # 记录损失
-    loss_history["epoch"].append(epoch)
-    loss_history["fusion_loss"].append(epoch_fusion_loss / len(train_loader_ir))
-    loss_history["kd_gt_loss"].append(epoch_kd_gt_loss / len(train_loader_ir))
-    loss_history["kd_feat_loss"].append(epoch_kd_feat_loss / len(train_loader_ir))
-
- 
-
 def main():
     args = parse_args()
-
     if not os.path.exists('models/%s' %args.name):
         os.makedirs('models/%s' %args.name)
-
     print('Config -----')
     for arg in vars(args):
         print('%s: %s' %(arg, getattr(args, arg)))
@@ -310,37 +272,29 @@ def main():
     cudnn.benchmark = True
 
     # supervised mfif data
-    train_dir_ir = "./datasets/MSRS/train/ir/" # forground
-    train_dir_vi = "./datasets/MSRS/train/vi/" # forground
+    train_dir_ir = "./datasets/MSRS/train/ir/" 
+    train_dir_vi = "./datasets/MSRS/train/vi/" 
     train_dir_tea_img = "./MKDFusion_tea_Images/"
     train_name_list = os.listdir(train_dir_ir)
-
     transform_train = transforms.Compose([transforms.ToTensor(),
                                           ])
-
     dataset_train_ir = Get_MEF_Dataset_RGB(train_dir_ir, train_dir_vi, train_dir_tea_img, train_name_list,
                                     transform=transform_train)
-
     train_loader_ir = DataLoader(dataset_train_ir,
                               shuffle=True,
                               batch_size=args.sbatch_size)
-    
     model_tea = teacher_model(num_channel=1, base_filter=16).to(device)
     model_tea.load_state_dict(torch.load('./stu_kd/tea_recon_model.pth'))
-    
     model_stu = stu_model(num_channel=1, base_filter=16).to(device)
-
     milestones = []
     for i in range(1, args.epochs+1):
         if i == 100:
             milestones.append(i)
         if i == 200:
             milestones.append(i)
-    
     optimizer = optim.Adam(model_stu.parameters(), lr=args.lr,
                            betas=args.betas, eps=args.eps)
     scheduler_f = lrs.MultiStepLR(optimizer, milestones, args.gamma)
-
     loss_history = dict((k, []) for k in ["epoch", "fusion_loss", "kd_gt_loss", "kd_feat_loss"])
     for epoch in range(args.epochs):
         print('Epoch [%d/%d]' % (epoch+1, args.epochs))
@@ -353,7 +307,6 @@ def main():
             torch.save(model_stu.state_dict(), 'models_pl/model_{}.pth'.format(epoch+1))
  
 import cv2
-
 def tensor2img(img):
   img = img.cpu().float().numpy()
   if img.shape[0] == 1:
@@ -368,10 +321,6 @@ def save_img_single(img, name, width=None, height=None):
   if not width==None and not height==None:
     img = img.resize((width , height))
   img.save(name)
-
-
-
-
 
 if __name__ == '__main__':
     ckt = {'epoch':0, 'psnr':0.0, 'a':0.0} 

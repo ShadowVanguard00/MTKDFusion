@@ -327,6 +327,7 @@ class FFVit(nn.Module):
             nn.init.constant_(m.bias, 0)
             nn.init.constant_(m.weight, 1.0)
 
+    
     def forward(self, x):
         x_first = self.first_conv(x)
         x = self.downsample(x_first)

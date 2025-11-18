@@ -340,3 +340,4 @@ class FFVit(nn.Module):
         x = self.conv_last(x)
         return x
  
+

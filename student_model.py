@@ -77,11 +77,9 @@ class Decoder(nn.Module):
                                      nn.Conv2d(base_filter, num_channel, 3, 1, 0, bias=False))
     def forward(self, Ires,I2res,I4res,I8):
         I8_d = self.dformer8(I8)
-        I4 = I4res + self.up(I8_d)
-        I2 = I2res + self.up(self.dformer4(I4))
-        I = Ires + self.up(self.dformer2(I2)) 
-        I = self.dformer1(I)
-        I1 = I
+        I4 = self.dformer4(I4res + self.up(I8_d))
+        I2 = self.dformer2(I2res + self.up((I4)))
+        I1 = self.dformer1(Ires + self.up((I2)))
         I = self.out_conv(I)
         return I, I8_d, I4, I2, I1
     

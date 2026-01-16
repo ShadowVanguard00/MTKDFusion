@@ -10,7 +10,6 @@ from timm.models.layers import trunc_normal_, DropPath
 from math import exp
 from torch.autograd import Variable
 import os
-from GWFE import GWFE
 import argparse
 from dataset import Get_SDataset
 import torch.optim as optim

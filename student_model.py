@@ -31,7 +31,6 @@ def Fusion_loss(vi, ir, fu, weights=[10, 10], device=None):
     fu_gray = torch.mean(fu, 1, keepdim=True)
     sobelconv=Sobelxy(device) 
 
-    # 梯度损失
     vi_grad_x, vi_grad_y = sobelconv(vi_gray)
     ir_grad_x, ir_grad_y = sobelconv(ir)
     fu_grad_x, fu_grad_y = sobelconv(fu_gray)
@@ -39,7 +38,6 @@ def Fusion_loss(vi, ir, fu, weights=[10, 10], device=None):
     grad_joint_y = torch.max(vi_grad_y, ir_grad_y)
     loss_grad = F.l1_loss(grad_joint_x, fu_grad_x) + F.l1_loss(grad_joint_y, fu_grad_y)
 
-    ## 强度损失
     loss_intensity = torch.mean(torch.pow((fu - vi), 2)) + torch.mean((fu_gray < ir) * torch.abs((fu_gray - ir)))
 
     loss_total = weights[0] * loss_grad + weights[1] * loss_intensity
@@ -47,7 +45,6 @@ def Fusion_loss(vi, ir, fu, weights=[10, 10], device=None):
 
 
 def calculate_cosine_similarity_loss(intermediate_outputs_student, intermediate_outputs_teacher):
-	# 确保两个元组长度相等
 	assert len(intermediate_outputs_student) == len(intermediate_outputs_teacher), "Input tuples must have the same length"
 	total_loss = 0.0
 	for student, teacher in zip(intermediate_outputs_student, intermediate_outputs_teacher):
@@ -95,7 +92,7 @@ class CBR(nn.Module):
 
     def forward(self, x):
         x = self.conv(x)
-        if self.act:  # 可选是否激活
+        if self.act:  
             x = self.relu(x)
         return x
     
@@ -115,7 +112,7 @@ class CSAM(nn.Module):
             nn.ReLU(),
             nn.Conv2d(hidden_chans, in_chans, kernel_size=1, bias=False),
         )
-        self.space_attn_1 = nn.Conv2d(in_chans, 1, kernel_size=3, padding=0, bias=False)         # (1-1)//2=0
+        self.space_attn_1 = nn.Conv2d(in_chans, 1, kernel_size=3, padding=0, bias=False)     
         self.gate = nn.Sigmoid()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -394,14 +391,11 @@ def YCbCr2RGB(Y, Cb, Cr):
 
 
 import math
-# 余弦退火衰减（确保最后为0）
 def cosin_decay(epoch, total_epochs):
     if total_epochs <= 1:
         return 0.0
-    
     progress = min(epoch/total_epochs, 1.0)   
     rate = 0.5 * (1 + math.cos(math.pi * progress))
-
     return rate
 
 

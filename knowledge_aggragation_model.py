@@ -37,7 +37,6 @@ def Fusion_loss(vi, ir, fu, weights=[10, 10], device=None):
     fu_gray = torch.mean(fu, 1, keepdim=True)
     sobelconv=Sobelxy(device) 
 
-    # 梯度损失
     vi_grad_x, vi_grad_y = sobelconv(vi_gray)
     ir_grad_x, ir_grad_y = sobelconv(ir)
     fu_grad_x, fu_grad_y = sobelconv(fu_gray)
@@ -45,7 +44,6 @@ def Fusion_loss(vi, ir, fu, weights=[10, 10], device=None):
     grad_joint_y = torch.max(vi_grad_y, ir_grad_y)
     loss_grad = F.l1_loss(grad_joint_x, fu_grad_x) + F.l1_loss(grad_joint_y, fu_grad_y)
 
-    ## 强度损失
     loss_intensity = torch.mean(torch.pow((fu - vi), 2)) + torch.mean((fu_gray < ir) * torch.abs((fu_gray - ir)))
 
     loss_total = weights[0] * loss_grad + weights[1] * loss_intensity
@@ -59,12 +57,10 @@ def Ref_loss(ref, fu, weights=[10, 10], device=None):
     fu_gray = torch.mean(fu, 1, keepdim=True)
     sobelconv=Sobelxy(device) 
 
-    # 梯度损失
     ref_grad_x, ref_grad_y = sobelconv(ref)
     fu_grad_x, fu_grad_y = sobelconv(fu_gray)
     loss_grad = F.l1_loss(ref_grad_x, fu_grad_x) + F.l1_loss(ref_grad_y, fu_grad_y)
 
-    ## 强度损失
     loss_intensity = torch.mean(torch.pow((fu - ref), 2))
 
     loss_total = weights[0] * loss_grad + weights[1] * loss_intensity
@@ -103,7 +99,6 @@ def trainer(train_loader,
 
             with torch.no_grad():
                 tea1_fused_img = net_g_tea1(Y_vi, img_ir)
-
 
             with torch.no_grad():
                 tea2_fused_img = run(net_g_tea2, img_ir, Y_vi)
@@ -201,7 +196,6 @@ def run(model, ir_test_batch, vis_test_batch):
 
 
 class ka_model(nn.Module):
-    """Base SR model for single image super-resolution."""
     def __init__(self):
         super(ka_model, self).__init__()
         self.device = torch.device('cuda')
@@ -228,7 +222,6 @@ class ka_model(nn.Module):
         self.net_g_tea3_model_D = torch.load(model_path_D, map_location=self.device) 
         self.net_g_tea3_model_F = torch.load(model_path_F, map_location=self.device)
  
-        # 图像融合结构
         upscale = 2
         window_size = 8
         height = (48 // upscale // window_size + 1) * window_size
@@ -337,7 +330,7 @@ class ka_model(nn.Module):
 
                 with torch.no_grad(): 
                     tea_fused_img = self.net_tea_fuse(torch.cat([tea1_fused_img, tea2_fused_img, tea3_fused_img], dim=1))
-                    tea_fused_img = torch.clamp(tea_fused_img, 0, 1)  # 新增的归一化操作
+                    tea_fused_img = torch.clamp(tea_fused_img, 0, 1)
                     fused_img = YCbCr2RGB(tea_fused_img, vi_Cb, vi_Cr)
 
                 # fused_img = YCbCr2RGB(fused_img, vi_Cb, vi_Cr)

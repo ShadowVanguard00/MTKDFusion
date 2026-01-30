@@ -112,7 +112,7 @@ class CSAM(nn.Module):
             nn.ReLU(),
             nn.Conv2d(hidden_chans, in_chans, kernel_size=1, bias=False),
         )
-        self.space_attn_1 = nn.Conv2d(in_chans, 1, kernel_size=3, padding=0, bias=False)     
+        self.space_attn_1 = nn.Conv2d(in_chans, 1, kernel_size=3, padding=1, bias=False)     
         self.gate = nn.Sigmoid()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -236,6 +236,7 @@ class Encoder(nn.Module):
         I4res = I4 - self.up(I8) 
         return Ires,I2res,I4res,I8
 
+
 class Decoder(nn.Module):
     def __init__(self, num_channel, base_filter):
         super(Decoder, self).__init__()
@@ -254,9 +255,10 @@ class Decoder(nn.Module):
         I4 = self.dformer4(I4res + self.up(I8_d))
         I2 = self.dformer2(I2res + self.up((I4)))
         I1 = self.dformer1(Ires + self.up((I2)))
-        I = self.out_conv(I)
+        I = self.out_conv(I1)
         return I, I8_d, I4, I2, I1
     
+
 
 class Stu_Decoder(nn.Module):
     def __init__(self, num_channel, base_filter):
@@ -283,7 +285,7 @@ class Stu_Decoder(nn.Module):
             I4 = self.dformer4(I4res + self.up(I8_d))
             I2 = self.dformer2(I2res + self.up((I4)))
             I1 = self.dformer1(Ires + self.up((I2)))
-            I = self.out_conv(I)
+            I = self.out_conv(I1)
         return I, I8_d, I4, I2, I1
 
     
